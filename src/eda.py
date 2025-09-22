@@ -64,7 +64,7 @@ def eda_sum(df: pd.DataFrame, show_heatmap=True):
             print("\n")
 
             plt.figure(figsize(6,8))
-            sns.countplot(y=df[col]. order=df[col].value_counts().index)
+            sns.countplot(y=df[col], order=df[col].value_counts().index)
             plt.title(f"Countplot of {col}")
             plt.show()
 
