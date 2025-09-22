@@ -1,71 +1,102 @@
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from scipy.stats import iqr
+
 
 def eda_sum(df: pd.DataFrame, show_heatmap=True):
     """
-    Comprehensive EDA summary.
+    EDA samenvatting voor project.
 
     Parameters:
-        df (pd.DataFrame): Input dataframe
-        show_heatmap (bool): Whether to show correlation heatmap for numeric columns
+        df (pd.DataFrame): De input dataset
+        show_heatmap (bool): Toon correlatie heatmap
     """
-
-    print("="*50)
-    print("* DATAFRAME SHAPE")
-    print(f"Rows: {df.shape[0]}, Columns: {df.shape[1]}")
-    print("="*50, "\n")
-
-    print("* COLUMN DATA TYPES")
+    # Algemene info
+    print("---"*33)
+    print("Dataset Info")
+    print("---"*33)
+    print(f"Rijen: {df.shape[0]}, Kolommen: {df.shape[1]}")
+    print("Datatypen:")
     print(df.dtypes)
-    print("\n")
-
-    print("* MISSING VALUES")
+    print("Ontbrekende waarden:")
     missing = df.isnull().sum()
-    missing_percent = df.isnull().mean() * 100
-    missing_df = pd.DataFrame({"Missing": missing, "Percent": missing_percent})
-    print(missing_df)
-    print("\n")
+    print(missing)
 
-    all_numeric = df.select_dtypes(include='number').shape[1] == df.shape[1]
-    print(f"* All columns numeric? {all_numeric}")
-    print("="*50, "\n")
+    # Meta data
+    print("---"*33)
+    print("Meta data overzicht:")
+    print("---"*33)
+    df.info()
 
-    numeric_cols = df.select_dtypes(include='number').columns
-    if len(numeric_cols) > 0:
-        print("* NUMERIC COLUMN STATISTICS")
-        display(df[numeric_cols].describe())
-        print("\n")
+    # Feature selectie
+    selected_features = [
+        'age', 'heart_disease', 'hypertension', 'avg_glucose_level',
+        'work_type_Self-employed', 'bmi', 'smoking_status_formerly smoked', 'stroke'
+    ]
+    df_features = df[selected_features].copy()
 
-        if show_heatmap:
-            print("* CORRELATION HEATMAP")
-            plt.figure(figsize=(8,6))
-            sns.heatmap(df[numeric_cols].corr(), annot=True, cmap='coolwarm')
-            plt.title("Correlation heatmap")
-            plt.show()
+    # Correlatie analyse
+    print("---"*33)
+    print("Correlatie Analyse")
+    print("---"*33)
+    if show_heatmap:
+        plt.figure(figsize=(8, 6))
+        sns.heatmap(df_features.corr(), annot=True, cmap='coolwarm')
+        plt.title("Correlatie Heatmap")
+        plt.show()
 
-        for col in numeric_cols:
-            plt.figure(figsize=(6,4))
-            sns.histplot(df[col], kde=True)
-            plt.title(f"Distribution of {col}")
-            plt.show()
+    print("---"*33)
+    print("Correlaties met 'stroke':")
+    print("---"*33)
+    correlations = df_features.corr()['stroke'].sort_values(ascending=False)[1:]
+    for feature, corr in correlations.items():
+        print(f"{feature}: {corr:.3f}")
 
-            plt.figure(figsize=(6,4))
-            sns.boxplot(x=df[col])
-            plt.title(f"Boxplot of {col}")
-            plt.show()
+    # Verdeling non-boolean features (ratio niveau)
+    print("---"*33)
+    print("Verdeling Non-Boolean Features")
+    print("---"*33)
 
+    def statistieken_verdeling(df, col):
+        """Bereken iqr, skewness en kurtosis voor een kolom."""
+        print(f"Statistieken voor {col}:")
+        print(df[col].describe())
+        print(f"IQR: {iqr(df[col]):.2f}")
+        print(f"Skewness: {df[col].skew():.2f}")
+        print(f"Kurtosis: {df[col].kurtosis():.2f}")
+        sns.histplot(data=df, x=col)
+        plt.title(f"Verdeling van {col}")
+        plt.show()
+
+        plt.figure(figsize=(6, 4))
+        sns.boxplot(data=df, x='stroke', y=col)
+        plt.title(f"Boxplot van {col} per Stroke")
+        plt.show()
+
+    for col in ['age', 'avg_glucose_level', 'bmi']:
+        statistieken_verdeling(df_features, col)
+
+    # Verdeling boolean features (nominaal niveau)
+    print("---"* 33)
+    print("Verdeling Boolean Features")
+    print("---"* 33)
+    boolean_cols = ['heart_disease', 'hypertension', 'work_type_Self-employed', 'smoking_status_formerly smoked',
+                    'stroke']
+    for col in boolean_cols:
+        print(df_features[col].value_counts())
+        print()
+
+    # Categorische kolommen
     cat_cols = df.select_dtypes(include='object').columns
     if len(cat_cols) > 0:
-        print("* CATEGORICAL COLUMN SUMMARY")
+        print("Categorische Kolommen")
         for col in cat_cols:
-            print(f"-- {col} --")
+            print(f"{col}:")
             print(df[col].value_counts())
-            print("\n")
-
-            plt.figure(figsize(6,8))
+            plt.figure(figsize=(6, 8))
             sns.countplot(y=df[col], order=df[col].value_counts().index)
-            plt.title(f"Countplot of {col}")
+            plt.title(f"Verdeling van {col}")
             plt.show()
-
     print("* EDA FINISHED!!")
