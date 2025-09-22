@@ -41,7 +41,7 @@ def eda_sum(df: pd.DataFrame, show_heatmap=True):
             print("* CORRELATION HEATMAP")
             plt.figure(figsize=(8,6))
             sns.heatmap(df[numeric_cols].corr(), annot=True, cmap='coolwarm')
-            plt.tile("Correlation heatmap")
+            plt.title("Correlation heatmap")
             plt.show()
 
         for col in numeric_cols:
