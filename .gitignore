@@ -1,0 +1,21 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Virtual environments
+venv/
+.env/
+.venv/
+ENV/
+
+# VSCode/VSCodium project settings
+.vscode/
+.history/
+
+# OS files (just in case)
+.DS_Store
+Thumbs.db
