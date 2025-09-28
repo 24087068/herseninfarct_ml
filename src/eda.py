@@ -4,6 +4,25 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.stats import iqr
 
+def impossible_values(df: pd.DataFrame):
+    """
+    Waarden zoeken die hoogst waarschijnlijk onmogelijk of onwaarschijnlijk zijn.
+    Retourneerd een dictionary met de problemen.
+    """
+
+    problems = {}
+
+    problems['age'] = df[(df['age'] < 0) | (df['age'] > 120)]
+    problems['bmi'] = df[(df['bmi'] < 10) | (df['bmi'] > 60)]
+    problems['avg_glucose_level'] = df[(df['avg_glucose_level'] < 40) | (df['avg_glucose_level'] > 400)]
+
+    # Boolean checks
+    bool_cols = ['heart_disease', 'hypertension', 'work_type_Self-employed',
+                'smoking_status_formerly smoked', 'stroke']
+    for col in bool_cols:
+        problems[col] = df[~df[col].isin([0, 1])]
+
+    return problems
 
 def eda_sum(df: pd.DataFrame, show_heatmap=True):
     """
@@ -99,4 +118,14 @@ def eda_sum(df: pd.DataFrame, show_heatmap=True):
             sns.countplot(y=df[col], order=df[col].value_counts().index)
             plt.title(f"Verdeling van {col}")
             plt.show()
+
+    print("---" * 33)
+    print("Controle op onmogelijke waarden")
+    print("---" * 33)
+
+    problems = impossible_values(df)
+    for col, bad_rows in problems.items():
+        if not bad_rows.empty:
+            print(f"\n Onmogelijke waarden in {col}:")
+            print(bad_rows[col])
     print("* EDA FINISHED!!")
