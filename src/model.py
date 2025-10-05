@@ -23,7 +23,7 @@ def train_knn(X, y):
         best_params: dict van beste hyperparameters
         best_score: best cross-validation f1-score
     """
-
+    # - Imbalanced learning, 2025, SMOTE: https://imbalanced-learn.org/stable/references/generated/imblearn.over_sampling.SMOTE.html
     pipeline= Pipeline([
         ('smote', SMOTE(random_state=42)),
         ('knn', KNeighborsClassifier())
@@ -34,9 +34,9 @@ def train_knn(X, y):
         'knn__weights': ['uniform', 'distance'],
         'knn__metric': ['euclidean', 'manhattan']
     }
-
+    # - scikit - learn, 2025, StarfieldKFold: https: // scikit - learn.org / stable / modules / generated / sklearn.model_selection.StratifiedKFold.html
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-
+    # - scikit-learn, 2025, make_scorer: https://scikit-learn.org/stable/modules/generated/sklearn.metrics.make_scorer.html
     scorer = make_scorer(f1_score)
 
     grid = GridSearchCV(
@@ -197,7 +197,8 @@ def train_decision_tree(X, y):
 
     return best_model, best_params, best_score
 
-# Ensemble 1:
+# Ensemble 1 :
+# - ChatGPT, 2025, prompt: Verbeteren van custom ensemble model: https://chatgpt.com/share/68e281a6-b384-800a-8744-210bd4b3c038
 def train_random_forest(X, y):
     """
     Train een Random Forest classifier met cross-validation, SMOTE en hyperparameter tuning.
