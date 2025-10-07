@@ -1,21 +1,24 @@
 from sklearn.metrics import confusion_matrix, classification_report
 from sklearn.neighbors import KNeighborsClassifier
+import seaborn as sns
 import pandas as pd
+import matplotlib.pyplot as plt
 
-def evaluate_knn(X_train, X_test, y_train, y_test, n_neighbors=1):
-    """
-    Train een KNN-classifier en evalueer deze met behulp van een confusion matrix, precisie, recall en f1-score.
-    Parameters:
-        X_train, X_test, y_train, y_test: trainings- en testdatasets
-        n_neighbors (int): aantal buren voor KNN
-    """
-    knn = KNeighborsClassifier(n_neighbors=n_neighbors)
-    knn.fit(X_train, y_train)
-    y_pred = knn.predict(X_test)
-
-    cm = confusion_matrix(y_test, y_pred)
-    print(cm)
-    print(classification_report(y_test, y_pred))
+def evaluate_knn(X_train, X_val, y_train, y_val, n_neighbors=3):
+    model = KNeighborsClassifier(n_neighbors=n_neighbors)
+    model.fit(X_train, y_train)
+    
+    y_pred = model.predict(X_val)
+    
+    # Confusion matrix
+    cm = confusion_matrix(y_val, y_pred)
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
+    plt.xlabel('Predicted')
+    plt.ylabel('Actual')
+    plt.show()
+    
+    report = classification_report(y_val, y_pred)
+    print(report)
 
 def export_submission(model, X_test, test_ids, filename):
     """

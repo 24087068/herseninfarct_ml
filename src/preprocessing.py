@@ -38,6 +38,9 @@ def normalize_data(train_df: pd.DataFrame, test_df: pd.DataFrame = None, cols_to
     # Determine numeric columns if not specified
     if cols_to_scale is None:
         cols_to_scale = train_df.select_dtypes(include=['float64', 'int64']).columns
+
+    exclude_cols = ['id']
+    cols_to_scale = [c for c in cols_to_scale if c not in exclude_cols]
     
     # Fit scaler on train
     scaler = StandardScaler()

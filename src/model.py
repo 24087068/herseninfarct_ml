@@ -30,9 +30,9 @@ def train_knn(X, y):
     ])
 
     param_grid = {
-        'knn__n_neighbors': [3, 5, 7, 9, 11],
-        'knn__weights': ['uniform', 'distance'],
-        'knn__metric': ['euclidean', 'manhattan']
+        'knn__n_neighbors': [3, 5, 7, 11],
+        'knn__weights': ['distance'],
+        'knn__metric': ['euclidean'] # euclidean used to run better, force it to use now to understand
     }
     # - scikit - learn, 2025, StarfieldKFold: https: // scikit - learn.org / stable / modules / generated / sklearn.model_selection.StratifiedKFold.html
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
@@ -107,6 +107,7 @@ def train_svm(X, y):
     Parameters:
         X (pd.DataFrame of np.ndarray): features
         y (pd.Series of np.ndarray): target labels
+        kernel (str): 'poly' of 'linear'
 
     Returns:
         best_model: getrained model met beste hyperparameters
@@ -116,17 +117,25 @@ def train_svm(X, y):
 
     pipeline = Pipeline([
         ('smote', SMOTE(random_state=42)),
-        ('svm', SVC())
+        ('svm', SVC(class_weight='balanced'))
     ])
 
-    param_grid = {
-        'svm__C': [0.05, 0.1, 1,],
-        'svm__kernel': ['linear', 'rbf', 'poly'],
-        'svm__gamma': ['scale', 0.1],
-        'svm__degree': [2, 3]
-    }
+    param_grid = [
+        # Linear
+        {
+            'svm__kernel': ['linear'],
+            'svm__C': [0.1, 0.2]
+        #},
+        # Poly
+        #{
+        #    'svm__kernel': ['poly'],
+        #    'svm__C': [0.1, 1],
+        #    'svm__degree': [1, 2, 3],
+        #    'svm__gamma': ['scale', 0.1, 0.3]
+        }
+    ]
 
-    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    cv = StratifiedKFold(n_splits=2, shuffle=True, random_state=42)
     scorer = make_scorer(f1_score)
 
     grid = GridSearchCV(
@@ -134,7 +143,8 @@ def train_svm(X, y):
         param_grid=param_grid,
         scoring=scorer,
         cv=cv,
-        n_jobs=-1
+        n_jobs=-1,
+        verbose=2
     )
 
     grid.fit(X, y)
@@ -313,9 +323,9 @@ def train_custom_ensemble(X, y):
     """
 
     base_models = [
-        ('knn', KNeighborsClassifier()),
-        ('lr', LogisticRegression(max_iter=1000)),
-        ('rf', RandomForestClassifier())
+        ('lr', LogisticRegression(max_iter=2000, solver='liblinear')),
+        ('rf', RandomForestClassifier()),
+        ('svm', SVC(C=0.1, kernel='linear', probability=True))
     ]
 
     # Create voting ensemble (soft voting)
@@ -326,11 +336,9 @@ def train_custom_ensemble(X, y):
 
     # Hyperparameter grid
     param_grid = {
-        'ensemble__knn__n_neighbors': [5, 7, 9], # Mischien testen met 8, 10 of 11 erbij en 5 en 7 verwijderen
-        'ensemble__knn__weights': ['distance', 'uniform'],
-        'ensemble__lr__C': [1, 10, 100],
-        'ensemble__rf__n_estimators': [50, 100, 150],
-        'ensemble__rf__max_depth': [None, 5, 10]
+        'ensemble__lr__C': [1, 10],
+        'ensemble__rf__n_estimators': [100, 150],
+        'ensemble__rf__max_depth': [5, 10]
     }
 
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
