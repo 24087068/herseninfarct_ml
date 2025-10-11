@@ -5,7 +5,8 @@ from sklearn.metrics import f1_score, make_scorer
 from imblearn.over_sampling import SMOTE
 from imblearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression
-from sklearn.svm import SVC
+from sklearn.svm import LinearSVC
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, VotingClassifier
 from xgboost import XGBClassifier
@@ -30,7 +31,7 @@ def train_knn(X, y):
     ])
 
     param_grid = {
-        'knn__n_neighbors': [3, 5, 7, 11],
+        'knn__n_neighbors': [7, 8],
         'knn__weights': ['distance'],
         'knn__metric': ['euclidean'] # euclidean used to run better, force it to use now to understand
     }
@@ -74,11 +75,11 @@ def train_lr(X, y):
     """
     pipeline = Pipeline([
         ('smote', SMOTE(random_state=42)),
-        ('lr', LogisticRegression(class_weight='balanced', max_iter=1000, random_state=42))
+        ('lr', LogisticRegression(class_weight='balanced', max_iter=3000, random_state=42))
     ])
 
     param_grid = {
-        'lr__C': [0.01, 0.1, 1, 10, 100],
+        'lr__C': [0.003, 0.005, 0.008, 0.01],
         'lr__penalty': ['l1', 'l2'],
         'lr__solver': ['liblinear']
     }
@@ -115,27 +116,20 @@ def train_svm(X, y):
         best_score: best cross-validation f1-score
     """
 
+    # Switched out regular SVM for LinearSVC as regular SVM took to long
+    base_svm = LinearSVC(dual=False, max_iter=10000, class_weight='balanced', random_state=42)
+    calibrated_svm = CalibratedClassifierCV(estimator=base_svm, method='sigmoid', cv=3)
+
     pipeline = Pipeline([
         ('smote', SMOTE(random_state=42)),
-        ('svm', SVC(class_weight='balanced'))
+        ('svm', calibrated_svm)
     ])
 
-    param_grid = [
-        # Linear
-        {
-            'svm__kernel': ['linear'],
-            'svm__C': [0.1, 0.2]
-        #},
-        # Poly
-        #{
-        #    'svm__kernel': ['poly'],
-        #    'svm__C': [0.1, 1],
-        #    'svm__degree': [1, 2, 3],
-        #    'svm__gamma': ['scale', 0.1, 0.3]
+    param_grid = {
+            'svm__estimator__C': [0.005, 0.01, 0.02, 0.03]
         }
-    ]
 
-    cv = StratifiedKFold(n_splits=2, shuffle=True, random_state=42)
+    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
     scorer = make_scorer(f1_score)
 
     grid = GridSearchCV(
@@ -144,7 +138,7 @@ def train_svm(X, y):
         scoring=scorer,
         cv=cv,
         n_jobs=-1,
-        verbose=2
+        verbose=1
     )
 
     grid.fit(X, y)
@@ -179,10 +173,10 @@ def train_decision_tree(X, y):
     ])
 
     param_grid = {
-        'dt__max_depth': [None, 5, 10, 15, 20],
-        'dt__min_samples_split': [2, 5, 10],
-        'dt__min_samples_leaf': [1, 2, 3, 4, 5],
-        'dt__criterion': ['gini', 'entropy']
+        'dt__max_depth': [4, 5, 6],
+        'dt__min_samples_split': [2, 3],
+        'dt__min_samples_leaf': [1, 2],
+        'dt__criterion': ['entropy']
     }
 
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
@@ -219,9 +213,9 @@ def train_random_forest(X, y):
     ])
 
     param_grid = {
-        'rf__n_estimators': [100, 200, 300],
-        'rf__max_depth': [None, 5, 10],
-        'rf__min_samples_split': [2, 5],
+        'rf__n_estimators': [100, 150, 200],
+        'rf__max_depth': [4, 5, 10, 15],
+        'rf__min_samples_split': [2, 3],
         'rf__min_samples_leaf': [1, 2],
         'rf__criterion': ['gini', 'entropy']
     }
@@ -253,9 +247,9 @@ def train_gradient_boosting(X, y):
 
     param_grid = {
         'gb__n_estimators': [100, 200],
-        'gb__learning_rate': [0.01, 0.1, 0.2],
-        'gb__max_depth': [3, 5],
-        'gb__min_samples_split': [2, 5],
+        'gb__learning_rate': [0.05, 0.1, 0.15],
+        'gb__max_depth': [2, 3, 4],
+        'gb__min_samples_split': [2, 3],
         'gb__min_samples_leaf': [1, 2]
     }
 
@@ -285,9 +279,9 @@ def train_xgboost(X, y):
     ])
 
     param_grid = {
-        'xgb__n_estimators': [100, 200],
-        'xgb__learning_rate': [0.01, 0.1, 0.2],
-        'xgb__max_depth': [3, 5],
+        'xgb__n_estimators': [150, 200, 250],
+        'xgb__learning_rate': [0.01, 0.02, 0.05],
+        'xgb__max_depth': [2, 3, 4],
         'xgb__subsample': [0.8, 1.0],
         'xgb__colsample_bytree': [0.8, 1.0]
     }
@@ -322,10 +316,14 @@ def train_custom_ensemble(X, y):
         best_score: best cross-validation f1-score
     """
 
+    # Replace older SVC with LinearSVC for improved speed and better F1
+    base_svm = LinearSVC(dual=False, max_iter=10000, class_weight='balanced', random_state=42)
+    calibrated_svm = CalibratedClassifierCV(estimator=base_svm, method='sigmoid', cv=3)
+
     base_models = [
         ('lr', LogisticRegression(max_iter=2000, solver='liblinear')),
         ('rf', RandomForestClassifier()),
-        ('svm', SVC(C=0.1, kernel='linear', probability=True))
+        ('svm', calibrated_svm)
     ]
 
     # Create voting ensemble (soft voting)
@@ -336,9 +334,10 @@ def train_custom_ensemble(X, y):
 
     # Hyperparameter grid
     param_grid = {
-        'ensemble__lr__C': [1, 10],
+        'ensemble__lr__C': [0.01, 0.1, 1, 10],
         'ensemble__rf__n_estimators': [100, 150],
-        'ensemble__rf__max_depth': [5, 10]
+        'ensemble__rf__max_depth': [5, 10],
+        'ensemble__svm__estimator__C': [0.05, 0.1, 0.2]
     }
 
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
@@ -349,7 +348,8 @@ def train_custom_ensemble(X, y):
         param_grid=param_grid,
         scoring=scorer,
         cv=cv,
-        n_jobs=-1
+        n_jobs=-1,
+        verbose=1
     )
 
     grid.fit(X, y)

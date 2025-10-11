@@ -30,9 +30,16 @@ def export_submission(model, X_test, test_ids, filename):
         test_ids: ID-kolom van de testset
         filename: naam van de CSV die wordt aangemaakt
     """
-    submission = pd.DataFrame({
-        'id': test_ids,
-        'stroke': model.predict(X_test)
-    })
-    submission.to_csv(filename, index=False)
-    print(f"Submission saved as {filename}")
+    try:
+        predictions = model.predict(X_test)
+        print(f"Predictions length: {len(predictions)}, Test IDs length: {len(test_ids)}")
+
+        submission = pd.DataFrame({
+            'id': test_ids,
+            'stroke': predictions
+        })
+        submission.to_csv(filename, index=False)
+        print(f"Submission saved as {filename}")
+
+    except Exception as e:
+        print(f"Export failed: {e}")
