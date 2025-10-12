@@ -11,7 +11,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, VotingClassifier
 from xgboost import XGBClassifier
 
-def train_knn(X, y):
+def train_knn(X, y, X_test=None):
     """
     Train een KNN classifier met cross-validation, SMOTE en hyperparameter tuning.
 
@@ -54,13 +54,24 @@ def train_knn(X, y):
     best_params = grid.best_params_
     best_score = grid.best_score_
 
+    test_preds = None
+    if X_test is not None:
+        final_model = KNeighborsClassifier(
+            n_neighbors=best_params['knn__n_neighbors'],
+            weights='distance',
+            metric='euclidean',
+            n_jobs=-1
+        )
+        final_model.fit(X, y)
+        test_preds = final_model.predict(X_test)
+
     print("Best Params:", best_params)
     print("Best F1 score:", best_score)
 
-    return best_model, best_params, best_score
+    return best_model, best_params, best_score, test_preds
 
 # lr
-def train_lr(X, y):
+def train_lr(X, y, X_test=None):
     """
     Train een lr classifier met cross-validation, SMOTE en hyperparameter tuning.
 
@@ -95,13 +106,26 @@ def train_lr(X, y):
     best_params = grid_search.best_params_
     best_score = grid_search.best_score_
 
+    test_preds = None
+    if X_test is not None:
+        final_model = LogisticRegression(
+            class_weight='balanced',
+            max_iter=3000,
+            C=best_params['lr__C'],
+            penalty=best_params['lr__penalty'],
+            solver='liblinear',
+            random_state=42
+        )
+        final_model.fit(X, y)
+        test_preds = final_model.predict(X_test)
+
     print("Best Params:", best_params)
     print("Best F1 score:", best_score)
 
-    return best_model, best_params, best_score
+    return best_model, best_params, best_score, test_preds
 
 #svm
-def train_svm(X, y):
+def train_svm(X, y, X_test=None):
     """
     Train een SVM classifier met cross-validation, SMOTE en hyperparameter tuning.
 
@@ -147,13 +171,28 @@ def train_svm(X, y):
     best_params = grid.best_params_
     best_score = grid.best_score_
 
+    test_preds = None
+    if X_test is not None:
+        final_model = LinearSVC(
+            C=best_params['svm__estimator__C'],
+            dual=False,
+            max_iter=10000,
+            class_weight='balanced',
+            random_state=42
+        )
+        final_model_calibrated = CalibratedClassifierCV(
+            estimator=final_model, method='sigmoid', cv=3
+        )
+        final_model_calibrated.fit(X, y)
+        test_preds = final_model_calibrated.predict(X_test)
+
     print("Best Params:", best_params)
     print("Best F1 score:", best_score)
 
-    return best_model, best_params, best_score
+    return best_model, best_params, best_score, test_preds
 
 #decision tree
-def train_decision_tree(X, y):
+def train_decision_tree(X, y, X_test=None):
     """
     Train een Decision Tree classifier met cross-validation, SMOTE en hyperparameter tuning.
 
@@ -196,14 +235,26 @@ def train_decision_tree(X, y):
     best_params = grid.best_params_
     best_score = grid.best_score_
 
+    test_preds = None
+    if X_test is not None:
+        final_model = DecisionTreeClassifier(
+            random_state=42,
+            max_depth=best_params['dt__max_depth'],
+            min_samples_split=best_params['dt__min_samples_split'],
+            min_samples_leaf=best_params['dt__min_samples_leaf'],
+            criterion='entropy'
+        )
+        final_model.fit(X, y)
+        test_preds = final_model.predict(X_test)
+
     print("Best Params:", best_params)
     print("Best F1 score:", best_score)
 
-    return best_model, best_params, best_score
+    return best_model, best_params, best_score, test_preds
 
 # Ensemble 1 :
 # - ChatGPT, 2025, prompt: Verbeteren van custom ensemble model: https://chatgpt.com/share/68e281a6-b384-800a-8744-210bd4b3c038
-def train_random_forest(X, y):
+def train_random_forest(X, y, X_test=None):
     """
     Train een Random Forest classifier met cross-validation, SMOTE en hyperparameter tuning.
     """
@@ -230,13 +281,27 @@ def train_random_forest(X, y):
     best_params = grid.best_params_
     best_score = grid.best_score_
 
+    test_preds = None
+    if X_test is not None:
+        final_model = RandomForestClassifier(
+            random_state=42,
+            n_estimators=best_params['rf__n_estimators'],
+            max_depth=best_params['rf__max_depth'],
+            min_samples_split=best_params['rf__min_samples_split'],
+            min_samples_leaf=best_params['rf__min_samples_leaf'],
+            criterion=best_params['rf__criterion'],
+            n_jobs=-1
+        )
+        final_model.fit(X, y)
+        test_preds = final_model.predict(X_test)
+
     print("Random Forest Best Params:", best_params)
     print("Random Forest Best F1 score:", best_score)
 
-    return best_model, best_params, best_score
+    return best_model, best_params, best_score, test_preds
 
 
-def train_gradient_boosting(X, y):
+def train_gradient_boosting(X, y, X_test=None):
     """
     Train een Gradient Boosted Trees classifier met cross-validation, SMOTE en hyperparameter tuning.
     """
@@ -263,13 +328,26 @@ def train_gradient_boosting(X, y):
     best_params = grid.best_params_
     best_score = grid.best_score_
 
+    test_preds = None
+    if X_test is not None:
+        final_model = GradientBoostingClassifier(
+            random_state=42,
+            n_estimators=best_params['gb__n_estimators'],
+            learning_rate=best_params['gb__learning_rate'],
+            max_depth=best_params['gb__max_depth'],
+            min_samples_split=best_params['gb__min_samples_split'],
+            min_samples_leaf=best_params['gb__min_samples_leaf']
+        )
+        final_model.fit(X, y)
+        test_preds = final_model.predict(X_test)
+
     print("Gradient Boosting Best Params:", best_params)
     print("Gradient Boosting Best F1 score:", best_score)
 
-    return best_model, best_params, best_score
+    return best_model, best_params, best_score, test_preds
 
 
-def train_xgboost(X, y):
+def train_xgboost(X, y, X_test=None):
     """
     Train een XGBoost classifier met cross-validation, SMOTE en hyperparameter tuning.
     """
@@ -296,13 +374,28 @@ def train_xgboost(X, y):
     best_params = grid.best_params_
     best_score = grid.best_score_
 
+    test_preds = None
+    if X_test is not None:
+        final_model = XGBClassifier(
+            eval_metric='logloss',
+            random_state=42,
+            n_estimators=best_params['xgb__n_estimators'],
+            learning_rate=best_params['xgb__learning_rate'],
+            max_depth=best_params['xgb__max_depth'],
+            subsample=best_params['xgb__subsample'],
+            colsample_bytree=best_params['xgb__colsample_bytree'],
+            n_jobs=-1
+        )
+        final_model.fit(X, y)
+        test_preds = final_model.predict(X_test)
+
     print("XGBoost Best Params:", best_params)
     print("XGBoost Best F1 score:", best_score)
 
-    return best_model, best_params, best_score
+    return best_model, best_params, best_score, test_preds
 
 # Ensemble 2 (Custom)
-def train_custom_ensemble(X, y):
+def train_custom_ensemble(X, y, X_test=None):
     """
     Train een eigen ensemble model met minimaal 3 verschillende classifiers.
     
@@ -358,7 +451,41 @@ def train_custom_ensemble(X, y):
     best_params = grid.best_params_
     best_score = grid.best_score_
 
+    test_preds = None
+    if X_test is not None:
+        final_svm = LinearSVC(
+            dual=False,
+            max_iter=10000,
+            class_weight='balanced',
+            C=best_params['ensemble__svm__estimator__C'],
+            random_state=42
+        )
+        final_calibrated_svm = CalibratedClassifierCV(estimator=final_svm, method='sigmoid', cv=3)
+
+        final_lr = LogisticRegression(
+            max_iter=2000,
+            solver='liblinear',
+            C=best_params['ensemble__lr__C'],
+            random_state=42
+        )
+
+        final_rf = RandomForestClassifier(
+            n_estimators=best_params['ensemble__rf__n_estimators'],
+            max_depth=best_params['ensemble__rf__max_depth'],
+            random_state=42
+        )
+
+        final_models = [
+            ('lr', final_lr),
+            ('rf', final_rf),
+            ('svm', final_calibrated_svm)
+        ]
+
+        final_model = VotingClassifier(estimators=final_models, voting='soft')
+        final_model.fit(X, y)
+        test_preds = final_model.predict(X_test)
+
     print("Best Params:", best_params)
     print("Best F1 score:", best_score)
 
-    return best_model, best_params, best_score
+    return best_model, best_params, best_score, test_preds

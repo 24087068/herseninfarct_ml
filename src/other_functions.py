@@ -20,19 +20,16 @@ def evaluate_knn(X_train, X_val, y_train, y_val, n_neighbors=3):
     report = classification_report(y_val, y_pred)
     print(report)
 
-def export_submission(model, X_test, test_ids, filename):
+def export_submission(predictions, test_ids, filename):
     """
     Exporteer voorspellingen van een model naar een CSV bestand voor Kaggle.
 
     Parameters:
-        model: getraind model (sklearn-like)
-        X_test: features van de testset (geschaald indien nodig)
+        predictions: array met voorspelde waarden
         test_ids: ID-kolom van de testset
         filename: naam van de CSV die wordt aangemaakt
     """
     try:
-        predictions = model.predict(X_test)
-        print(f"Predictions length: {len(predictions)}, Test IDs length: {len(test_ids)}")
 
         submission = pd.DataFrame({
             'id': test_ids,
